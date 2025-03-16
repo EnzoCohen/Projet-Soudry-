@@ -29,7 +29,7 @@ jobs:
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa  # Utilisation directe de la clé privée SSH sans base64
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
