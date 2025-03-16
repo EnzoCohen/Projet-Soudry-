@@ -33,7 +33,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      # Étape 4 : Exécuter le pull sur le serveure
+      # Étape 4 : Exécuter le pull sur le serveur
       - name: Pull latest changes on the server
         run: |
           ssh Test@${{ secrets.SSH_HOST }} <<EOF
