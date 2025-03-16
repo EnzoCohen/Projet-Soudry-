@@ -1,0 +1,62 @@
+name: Deploy on Push to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Étape 1 : Vérification du code source
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Étape 2 : Exécuter les tests
+      - name: Run tests
+        run: |
+          cd client/
+          npm install
+          npm test
+
+      # Si un test échoue, arrêter le pipeline
+      - name: Check test results
+        if: failure()
+        run: exit 1
+
+      # Étape 3 : Configurer l'accès SSH
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      # Étape 4 : Exécuter le pull sur le serveur
+      - name: Pull latest changes on the server
+        run: |
+          ssh Test@${{ secrets.SSH_HOST }} <<EOF
+            cd ${{ secrets.WORK_DIR }}
+            git checkout main
+            git pull
+          EOF
+
+      # Étape 5 : Suppression des anciens conteneurs et images Docker
+      - name: Clean up old Docker containers and images
+        run: |
+          ssh Test@${{ secrets.SSH_HOST }} <<EOF
+            cd ${{ secrets.WORK_DIR }}/client
+            docker-compose down
+            docker system prune -af
+            docker image prune -af
+          EOF
+
+      # Étape 6 : Reconstruire et redémarrer les conteneurs
+      - name: Build and Start Docker Containers
+        run: |
+          ssh Test@${{ secrets.SSH_HOST }} <<EOF
+            cd ${{ secrets.WORK_DIR }}/client
+            docker-compose up -d --build
+          EOF
